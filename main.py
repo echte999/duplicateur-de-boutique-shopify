@@ -5,7 +5,10 @@ from pathlib import Path
 from cloner.client import ShopifyClient
 from cloner.mapping import IDMapping
 from cloner.domain import DomainRemapper
+from cloner.image_cache import ImageCache
 from cloner.phases.products import clone_all_products
+from cloner.phases.collections import clone_collections
+from cloner.report import save_report
 
 
 def load_env(path: str = ".env") -> None:
@@ -44,8 +47,14 @@ async def run_clone() -> None:
         source_custom=os.environ.get("SOURCE_CUSTOM_DOMAIN") or None,
     )
 
+    cache = ImageCache()
+    report: list[dict] = []
+
     try:
         await clone_all_products(client, mapping, remapper)
+        collection_entries = await clone_collections(client, mapping, remapper, cache)
+        report.extend(collection_entries)
+        save_report(report)
         print("Clone complete.")
     finally:
         await client.close()

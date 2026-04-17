@@ -540,7 +540,7 @@ async def clone_product(
     if source_options:
         await _clone_color_swatches(client, source_options, target_id, metaobject_cache)
 
-    print(f"  Cloned product '{product.get('title')}' ({source_id} → {target_id})")
+    print(f"  Cloned product '{product.get('title')}' ({source_id} -> {target_id})")
 
 
 async def clone_all_products(
