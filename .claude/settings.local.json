@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "mcp__github__get_me"
+      "mcp__github__get_me",
+      "Bash(openspec new *)",
+      "Bash(openspec status *)",
+      "Bash(openspec instructions *)",
+      "WebSearch",
+      "WebFetch(domain:shopify.dev)",
+      "WebFetch(domain:www.fudge.ai)",
+      "Bash(xargs grep *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); mcps=d.get\\('mcpServers', d.get\\('mcp', {}\\)\\); print\\(json.dumps\\(mcps, indent=2\\)\\)\")",
+      "mcp__shopify-target__get-products",
+      "mcp__shopify-target__get-product-by-id",
+      "mcp__shopify-source__get-products",
+      "mcp__shopify-source__get-product-by-id",
+      "Bash(python -c ' *)",
+      "Bash(python repair_products.py)"
     ]
   }
 }
