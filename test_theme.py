@@ -5,9 +5,6 @@ from pathlib import Path
 from cloner.client import ShopifyClient
 from cloner.mapping import IDMapping
 from cloner.domain import DomainRemapper
-from cloner.image_cache import ImageCache
-from cloner.phases.products import clone_all_products
-from cloner.phases.collections import clone_collections
 from cloner.phases.theme import clone_theme
 from cloner.report import save_report
 
@@ -31,7 +28,7 @@ def _require(key: str) -> str:
     return value
 
 
-async def run_clone() -> None:
+async def run() -> None:
     client = ShopifyClient(
         source_shop=_require("SOURCE_SHOP"),
         source_token=_require("SOURCE_TOKEN"),
@@ -40,29 +37,20 @@ async def run_clone() -> None:
     )
 
     mapping = IDMapping()
-
-    source_shop = _require("SOURCE_SHOP")
     remapper = DomainRemapper(
-        source_myshopify=source_shop,
+        source_myshopify=_require("SOURCE_SHOP"),
         target_domain=os.environ.get("TARGET_CUSTOM_DOMAIN") or _require("TARGET_SHOP"),
         source_custom=os.environ.get("SOURCE_CUSTOM_DOMAIN") or None,
     )
 
-    cache = ImageCache()
-    report: list[dict] = []
-
     try:
-        await clone_all_products(client, mapping, remapper)
-        collection_entries = await clone_collections(client, mapping, remapper, cache)
-        report.extend(collection_entries)
-        theme_entries = await clone_theme(client, mapping, remapper)
-        report.extend(theme_entries)
-        save_report(report)
-        print("Clone complete.")
+        entries = await clone_theme(client, mapping, remapper)
+        save_report(entries)
+        print("Theme clone complete.")
     finally:
         await client.close()
 
 
 if __name__ == "__main__":
     load_env()
-    asyncio.run(run_clone())
+    asyncio.run(run())

@@ -13,9 +13,16 @@ def save_report(entries: list[dict]) -> None:
     if not entries:
         return
 
-    fieldnames = list(entries[0].keys())
+    all_keys: list[str] = []
+    seen: set[str] = set()
+    for entry in entries:
+        for k in entry:
+            if k not in seen:
+                all_keys.append(k)
+                seen.add(k)
+
     with _REPORT_CSV.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=all_keys, extrasaction="ignore", restval="")
         writer.writeheader()
         writer.writerows(entries)
 
