@@ -8,6 +8,80 @@ from cloner.image_cache import ImageCache
 
 _LINK_RE = re.compile(r'<[^>]+[?&]page_info=([^&>]+)[^>]*>;\s*rel="next"')
 
+_SKIP_TYPES = {"metaobject_reference", "list.metaobject_reference",
+               "file_reference", "list.file_reference",
+               "product_reference", "list.product_reference",
+               "variant_reference", "list.variant_reference",
+               "page_reference", "list.page_reference",
+               "collection_reference", "list.collection_reference"}
+
+_REMAP_TYPES = {"html", "url", "json_string"}
+
+_QUERY_COLLECTION_METAFIELDS = """
+query GetCollectionMetafields($id: ID!) {
+  collection(id: $id) {
+    metafields(first: 100) {
+      edges {
+        node {
+          namespace
+          key
+          value
+          type
+        }
+      }
+    }
+  }
+}
+"""
+
+_MUTATION_METAFIELDS_SET = """
+mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
+  metafieldsSet(metafields: $metafields) {
+    metafields { namespace key }
+    userErrors { field message }
+  }
+}
+"""
+
+
+async def _fetch_collection_metafields(client: ShopifyClient, source_id: int) -> list[dict]:
+    gid = f"gid://shopify/Collection/{source_id}"
+    result = await client.graphql_source(_QUERY_COLLECTION_METAFIELDS, {"id": gid})
+    edges = result.get("data", {}).get("collection", {}).get("metafields", {}).get("edges", [])
+    return [edge["node"] for edge in edges]
+
+
+async def _write_collection_metafields(
+    client: ShopifyClient,
+    target_id: int,
+    metafields: list[dict],
+    remapper: DomainRemapper,
+) -> None:
+    owner_gid = f"gid://shopify/Collection/{target_id}"
+    inputs = []
+    for mf in metafields:
+        mf_type = mf.get("type", "")
+        if mf_type in _SKIP_TYPES:
+            continue
+        value = mf["value"]
+        if mf_type in _REMAP_TYPES:
+            value = remapper.remap(value) or value
+        inputs.append({
+            "ownerId": owner_gid,
+            "namespace": mf["namespace"],
+            "key": mf["key"],
+            "value": value,
+            "type": mf_type,
+        })
+
+    if not inputs:
+        return
+
+    result = await client.graphql_target(_MUTATION_METAFIELDS_SET, {"metafields": inputs})
+    errors = result.get("data", {}).get("metafieldsSet", {}).get("userErrors", [])
+    for err in errors:
+        print(f"  [WARN] Collection metafield ({err.get('field')}): {err.get('message')}")
+
 
 async def fetch_custom_collections(client: ShopifyClient) -> list[dict]:
     all_collections: list[dict] = []
@@ -116,6 +190,11 @@ async def clone_custom_collection(
     result = await client.post_target("custom_collections.json", {"custom_collection": payload})
     tgt_id = result["custom_collection"]["id"]
     mapping.set("collection", src_collection["id"], tgt_id)
+
+    metafields = await _fetch_collection_metafields(client, src_collection["id"])
+    if metafields:
+        await _write_collection_metafields(client, tgt_id, metafields, remapper)
+
     print(f"  Cloned custom collection '{src_collection.get('title')}' ({src_collection['id']} -> {tgt_id})")
     return tgt_id
 
@@ -140,6 +219,11 @@ async def clone_smart_collection(
     result = await client.post_target("smart_collections.json", {"smart_collection": payload})
     tgt_id = result["smart_collection"]["id"]
     mapping.set("collection", src_collection["id"], tgt_id)
+
+    metafields = await _fetch_collection_metafields(client, src_collection["id"])
+    if metafields:
+        await _write_collection_metafields(client, tgt_id, metafields, remapper)
+
     print(f"  Cloned smart collection '{src_collection.get('title')}' ({src_collection['id']} -> {tgt_id})")
     return tgt_id
 

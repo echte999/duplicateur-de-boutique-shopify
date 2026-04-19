@@ -34,15 +34,27 @@ Le système SHALL enregistrer dans la table de correspondance `{ id_source: id_c
 - **THEN** `id_map["product"]["111"]` vaut `999` et les variantes sont remappées dans `id_map["variant"]`
 
 ### Requirement: Clonage du métafield `caracteristiques` via GraphQL
-Le système SHALL lire le métafield `caracteristiques` (namespace: `custom`, key: `caracteristiques`) du produit source via GraphQL et l'écrire sur le produit cible avec la même valeur et le même type.
+Le système SHALL lire tous les métafields du produit source via GraphQL (`metafields(first: 100)`) et les écrire sur le produit cible via `metafieldsSet`, en ignorant les types dans `_SKIP_TYPES` (références croisées) et en appliquant le remapping de domaine sur les types dans `_REMAP_TYPES`.
 
 #### Scenario: Produit avec métafield `caracteristiques` renseigné
 - **WHEN** le produit source a `custom.caracteristiques` avec valeur `"Coton 100%"`
 - **THEN** le produit cible reçoit le même métafield avec la même valeur
 
-#### Scenario: Produit sans métafield `caracteristiques`
-- **WHEN** le produit source n'a pas de métafield `custom.caracteristiques`
-- **THEN** aucun appel GraphQL d'écriture n'est effectué pour ce produit
+#### Scenario: Produit sans métafields
+- **WHEN** le produit source n'a aucun métafield
+- **THEN** aucune mutation GraphQL `metafieldsSet` n'est effectuée pour ce produit
+
+#### Scenario: Produit avec plusieurs métafields personnalisés
+- **WHEN** le produit source a 5 métafields de namespaces et clés variés
+- **THEN** les 5 métafields sont écrits sur le produit cible en un seul appel `metafieldsSet`
+
+#### Scenario: Produit avec métafield de type référence
+- **WHEN** le produit source a un métafield de type `collection_reference`
+- **THEN** ce métafield est ignoré (pas de copie sur la cible)
+
+#### Scenario: Produit avec métafield HTML contenant un lien interne
+- **WHEN** `body_html` ou un métafield de type `html` contient `href="https://source.myshopify.com/..."`
+- **THEN** le lien est remappé vers le domaine cible avant écriture
 
 ### Requirement: Remapping de domaine dans `body_html`
 Le système SHALL appliquer le remapping de domaine sur le champ `body_html` de chaque produit avant création sur la cible.

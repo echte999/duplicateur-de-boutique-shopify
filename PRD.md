@@ -87,12 +87,12 @@ Flux : téléchargement depuis le CDN Shopify source → **stockage local tempor
 
 > Objectif : une boutique cible navigable, avec le catalogue et le visuel corrects.
 
-- [ ] Produits : titre, description, images (stockage local + re-upload), prix, variantes, statut, métafield `caracteristiques`
-- [ ] Collections : manuelles et automatiques, avec assignation des produits remappés
-- [ ] Thème actif : fichiers, assets, settings — avec injection des IDs remappés dans le JSON
-- [ ] Remapping de domaine : remplacement chirurgical dans tous les contenus HTML/JSON
-- [ ] Table de correspondance IDs : construite en temps réel, utilisée pour toutes les références croisées
-- [ ] Rapport post-clonage : fichier JSON/CSV `{ id_source, id_cible, type, statut }` par ressource
+- [X] Produits : titre, description, images (stockage local + re-upload), prix, variantes, statut, métafield `caracteristiques`
+- [X] Collections : manuelles et automatiques, avec assignation des produits remappés
+- [X] Thème actif : fichiers, assets, settings — avec injection des IDs remappés dans le JSON
+- [X] Remapping de domaine : remplacement chirurgical dans tous les contenus HTML/JSON
+- [X] Table de correspondance IDs : construite en temps réel, utilisée pour toutes les références croisées
+- [X] Rapport post-clonage : fichier JSON/CSV `{ id_source, id_cible, type, statut }` par ressource
 
 ---
 

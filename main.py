@@ -8,6 +8,10 @@ from cloner.domain import DomainRemapper
 from cloner.image_cache import ImageCache
 from cloner.phases.products import clone_all_products
 from cloner.phases.collections import clone_collections
+from cloner.phases.pages import clone_pages
+from cloner.phases.blogs import clone_blogs
+from cloner.phases.menus import clone_menus
+from cloner.phases.discounts import clone_discounts
 from cloner.phases.theme import clone_theme
 from cloner.report import save_report
 
@@ -52,14 +56,44 @@ async def run_clone() -> None:
     report: list[dict] = []
 
     try:
-        await clone_all_products(client, mapping, remapper)
+        # 1. Produits + variantes
+        product_entries = await clone_all_products(client, mapping, remapper)
+        report.extend(product_entries)
+        mapping.save()
+
+        # 2. Collections
         collection_entries = await clone_collections(client, mapping, remapper, cache)
         report.extend(collection_entries)
+        mapping.save()
+
+        # 3. Pages statiques
+        page_entries = await clone_pages(client, mapping, remapper)
+        report.extend(page_entries)
+        mapping.save()
+
+        # 4. Blogs + articles
+        blog_entries = await clone_blogs(client, mapping, remapper)
+        report.extend(blog_entries)
+        mapping.save()
+
+        # 5. Menus
+        menu_entries = await clone_menus(client, mapping, remapper)
+        report.extend(menu_entries)
+        mapping.save()
+
+        # 6. Politiques + réductions
+        discount_entries = await clone_discounts(client, mapping, remapper)
+        report.extend(discount_entries)
+        mapping.save()
+
+        # 7. Thème actif
         theme_entries = await clone_theme(client, mapping, remapper)
         report.extend(theme_entries)
-        save_report(report)
+        mapping.save()
+
         print("Clone complete.")
     finally:
+        save_report(report)
         await client.close()
 
 

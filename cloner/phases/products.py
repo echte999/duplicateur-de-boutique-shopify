@@ -31,6 +31,23 @@ query GetProductExtra($id: ID!) {
         }
       }
     }
+    variants(first: 100) {
+      edges {
+        node {
+          id
+          metafields(first: 100) {
+            edges {
+              node {
+                namespace
+                key
+                value
+                type
+              }
+            }
+          }
+        }
+      }
+    }
     options {
       id name
       linkedMetafield { namespace key }
@@ -248,8 +265,8 @@ async def fetch_all_products(client: ShopifyClient) -> list[dict]:
 
 async def _fetch_product_extra(
     client: ShopifyClient, source_id: int
-) -> tuple[str | None, list[dict], list[dict]]:
-    """Returns (category_gid, metafields_list, options_list)."""
+) -> tuple[str | None, list[dict], list[dict], dict[int, list[dict]]]:
+    """Returns (category_gid, metafields_list, options_list, variant_metafields_by_source_id)."""
     gid = f"gid://shopify/Product/{source_id}"
     result = await client.graphql_source(_QUERY_PRODUCT_EXTRA, {"id": gid})
     product_data = result.get("data", {}).get("product", {})
@@ -261,7 +278,17 @@ async def _fetch_product_extra(
         for edge in product_data.get("metafields", {}).get("edges", [])
     ]
     options = product_data.get("options", [])
-    return category_id, metafields, options
+
+    variant_metafields: dict[int, list[dict]] = {}
+    for edge in product_data.get("variants", {}).get("edges", []):
+        node = edge["node"]
+        gid_str = node["id"]  # e.g. "gid://shopify/ProductVariant/123"
+        src_variant_id = int(gid_str.split("/")[-1])
+        mfs = [e["node"] for e in node.get("metafields", {}).get("edges", [])]
+        if mfs:
+            variant_metafields[src_variant_id] = mfs
+
+    return category_id, metafields, options, variant_metafields
 
 
 async def _ensure_color_metaobject(
@@ -381,12 +408,10 @@ async def _clone_color_swatches(
 
 async def _write_metafields(
     client: ShopifyClient,
-    target_product_id: int,
+    owner_gid: str,
     metafields: list[dict],
     remapper: DomainRemapper,
 ) -> None:
-    target_gid = f"gid://shopify/Product/{target_product_id}"
-
     inputs = []
     for mf in metafields:
         mf_type = mf.get("type", "")
@@ -396,7 +421,7 @@ async def _write_metafields(
         if mf_type in _REMAP_TYPES:
             value = remapper.remap(value) or value
         inputs.append({
-            "ownerId": target_gid,
+            "ownerId": owner_gid,
             "namespace": mf["namespace"],
             "key": mf["key"],
             "value": value,
@@ -473,15 +498,19 @@ async def clone_product(
     cache: ImageCache,
     product: dict,
     metaobject_cache: dict[str, str],
-) -> None:
+) -> dict:
     source_id = product["id"]
 
     if mapping.has("product", source_id):
         print(f"  Skipping product {source_id} (already cloned)")
-        return
+        return {
+            "type": "product", "id_source": source_id,
+            "id_cible": mapping.get("product", source_id),
+            "title": product.get("title", ""), "statut": "skipped",
+        }
 
     # Récupère catégorie + métafields + options (swatches) depuis la source
-    category_gid, metafields, source_options = await _fetch_product_extra(client, source_id)
+    category_gid, metafields, source_options, variant_metafields = await _fetch_product_extra(client, source_id)
 
     payload: dict = {
         "title": product.get("title", ""),
@@ -510,6 +539,9 @@ async def clone_product(
     mapping.set("product", source_id, target_id)
     for sv, tv in zip(product.get("variants", []), target_product.get("variants", [])):
         mapping.set("variant", sv["id"], tv["id"])
+        if sv["id"] in variant_metafields:
+            tgt_variant_gid = f"gid://shopify/ProductVariant/{tv['id']}"
+            await _write_metafields(client, tgt_variant_gid, variant_metafields[sv["id"]], remapper)
 
     # Shopify ignore product_category dans le POST — on le définit via GraphQL
     if category_gid:
@@ -532,24 +564,29 @@ async def clone_product(
     if first_image_id and target_product.get("variants"):
         await _assign_variant_images(client, target_id, target_product["variants"], first_image_id)
 
-    # Écrit tous les métafields (caracteristiques, couleur, SEO, etc.)
+    # Écrit tous les métafields produit (caracteristiques, couleur, SEO, etc.)
     if metafields:
-        await _write_metafields(client, target_id, metafields, remapper)
+        await _write_metafields(client, f"gid://shopify/Product/{target_id}", metafields, remapper)
 
     # Clone les swatches couleur (linked metafields sur les options)
     if source_options:
         await _clone_color_swatches(client, source_options, target_id, metaobject_cache)
 
     print(f"  Cloned product '{product.get('title')}' ({source_id} -> {target_id})")
+    return {
+        "type": "product", "id_source": source_id, "id_cible": target_id,
+        "title": product.get("title", ""), "statut": "ok",
+    }
 
 
 async def clone_all_products(
     client: ShopifyClient,
     mapping: IDMapping,
     remapper: DomainRemapper,
-) -> None:
+) -> list[dict]:
     cache = ImageCache()
     metaobject_cache: dict[str, str] = {}
+    report_entries: list[dict] = []
     print("Synchronisation des définitions de métafields...")
     await _sync_metafield_definitions(client)
     print("Fetching products from source store...")
@@ -557,6 +594,15 @@ async def clone_all_products(
     print(f"Found {len(products)} products. Starting clone...")
 
     for product in products:
-        await clone_product(client, mapping, remapper, cache, product, metaobject_cache)
+        try:
+            entry = await clone_product(client, mapping, remapper, cache, product, metaobject_cache)
+            report_entries.append(entry)
+        except Exception as e:
+            print(f"  [ERROR] Product '{product.get('title')}' ({product['id']}): {e}")
+            report_entries.append({
+                "type": "product", "id_source": product["id"], "id_cible": None,
+                "title": product.get("title", ""), "statut": f"error: {e}",
+            })
 
     print(f"Products phase complete. {len(products)} products processed.")
+    return report_entries

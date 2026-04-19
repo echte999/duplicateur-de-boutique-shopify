@@ -31,3 +31,7 @@ class IDMapping:
 
     def has(self, resource_type: str, source_id: int | str) -> bool:
         return str(source_id) in self._map.get(resource_type, {})
+
+    def save(self) -> None:
+        _MAP_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _MAP_PATH.write_text(json.dumps(self._map, indent=2), encoding="utf-8")
