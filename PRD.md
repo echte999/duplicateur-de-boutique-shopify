@@ -102,7 +102,7 @@ Flux : téléchargement depuis le CDN Shopify source → **stockage local tempor
 
 - [X] Tous les métafields (pas seulement produits — collections, pages, variantes)
 - [X] Pages statiques avec remapping domaine
-- [ ] Articles de blog + collections de blog
+- [X] Articles de blog + collections de blog
 - [ ] Menus (navigation principale, footer, menus custom) avec remapping des cibles
 - [ ] Politiques du site : remplacement du nom de boutique + domaine
 - [ ] Réductions : copie config + remise à zéro des compteurs d'utilisation
