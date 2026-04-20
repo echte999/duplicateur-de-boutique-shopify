@@ -100,8 +100,8 @@ Flux : téléchargement depuis le CDN Shopify source → **stockage local tempor
 
 > Objectif : tout ce qu'un visiteur ou un admin verrait au quotidien est en place.
 
-- [ ] Tous les métafields (pas seulement produits — collections, pages, variantes)
-- [ ] Pages statiques avec remapping domaine
+- [X] Tous les métafields (pas seulement produits — collections, pages, variantes)
+- [X] Pages statiques avec remapping domaine
 - [ ] Articles de blog + collections de blog
 - [ ] Menus (navigation principale, footer, menus custom) avec remapping des cibles
 - [ ] Politiques du site : remplacement du nom de boutique + domaine

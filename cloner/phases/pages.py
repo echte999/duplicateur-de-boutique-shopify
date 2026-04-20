@@ -43,7 +43,7 @@ mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
 
 
 async def _fetch_page_metafields(client: ShopifyClient, source_id: int) -> list[dict]:
-    gid = f"gid://shopify/Page/{source_id}"
+    gid = f"gid://shopify/OnlineStorePage/{source_id}"
     result = await client.graphql_source(_QUERY_PAGE_METAFIELDS, {"id": gid})
     edges = result.get("data", {}).get("page", {}).get("metafields", {}).get("edges", [])
     return [edge["node"] for edge in edges]
@@ -55,7 +55,7 @@ async def _write_page_metafields(
     metafields: list[dict],
     remapper: DomainRemapper,
 ) -> None:
-    owner_gid = f"gid://shopify/Page/{target_id}"
+    owner_gid = f"gid://shopify/OnlineStorePage/{target_id}"
     inputs = []
     for mf in metafields:
         mf_type = mf.get("type", "")
@@ -134,7 +134,7 @@ async def clone_pages(
                 "title": page.get("title", ""),
                 "body_html": remapper.remap(page.get("body_html", "")) or "",
                 "handle": page.get("handle", ""),
-                "published": page.get("published", True),
+                "published": page.get("published_at") is not None,
             }
             if page.get("template_suffix"):
                 payload["template_suffix"] = page["template_suffix"]
