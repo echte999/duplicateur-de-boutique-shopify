@@ -15,7 +15,8 @@ from cloner.phases.policies import clone_policies
 from cloner.phases.discounts import clone_discounts
 from cloner.phases.theme import clone_theme
 from cloner.report import save_report
-from cloner.state import load_state, save_phase_completed, clear_state, cleanup_tmp_images
+from cloner.state import load_state, save_phase_completed, clear_state, cleanup_tmp_images, is_clone_complete
+from cloner.phase_selector import select_phases
 
 
 def load_env(path: str = ".env") -> None:
@@ -37,7 +38,7 @@ def _require(key: str) -> str:
     return value
 
 
-async def run_clone() -> None:
+async def run_clone(selected_phases: list[str]) -> None:
     client = ShopifyClient(
         source_shop=_require("SOURCE_SHOP"),
         source_token=_require("SOURCE_TOKEN"),
@@ -65,91 +66,86 @@ async def run_clone() -> None:
     cache = ImageCache()
     report: list[dict] = []
 
-    completed_phases = load_state(source_shop)
+    completed_phases, effective_selected = load_state(source_shop, selected_phases)
+
+    def _skip(phase: str) -> bool:
+        if phase not in effective_selected:
+            print(f"[SÉLECTION] Phase '{phase}' non sélectionnée, ignorée.")
+            return True
+        if phase in completed_phases:
+            print(f"[REPRISE] Phase '{phase}' déjà complétée, sautée.")
+            return True
+        return False
 
     success = False
     try:
-        # 1. Produits + variantes
-        if "products" in completed_phases:
-            print("[REPRISE] Phase 'products' déjà complétée, sautée.")
-        else:
+        if not _skip("products"):
             product_entries = await clone_all_products(client, mapping, remapper)
             report.extend(product_entries)
             mapping.save()
             save_phase_completed("products")
+            completed_phases.append("products")
 
-        # 2. Collections
-        if "collections" in completed_phases:
-            print("[REPRISE] Phase 'collections' déjà complétée, sautée.")
-        else:
+        if not _skip("collections"):
             collection_entries = await clone_collections(client, mapping, remapper, cache)
             report.extend(collection_entries)
             mapping.save()
             save_phase_completed("collections")
+            completed_phases.append("collections")
 
-        # 3. Pages statiques
-        if "pages" in completed_phases:
-            print("[REPRISE] Phase 'pages' déjà complétée, sautée.")
-        else:
+        if not _skip("pages"):
             page_entries = await clone_pages(client, mapping, remapper)
             report.extend(page_entries)
             mapping.save()
             save_phase_completed("pages")
+            completed_phases.append("pages")
 
-        # 4. Blogs + articles
-        if "blogs" in completed_phases:
-            print("[REPRISE] Phase 'blogs' déjà complétée, sautée.")
-        else:
+        if not _skip("blogs"):
             blog_entries = await clone_blogs(client, mapping, remapper)
             report.extend(blog_entries)
             mapping.save()
             save_phase_completed("blogs")
+            completed_phases.append("blogs")
 
-        # 5. Menus
-        if "menus" in completed_phases:
-            print("[REPRISE] Phase 'menus' déjà complétée, sautée.")
-        else:
+        if not _skip("menus"):
             menu_entries = await clone_menus(client, mapping, remapper)
             report.extend(menu_entries)
             mapping.save()
             save_phase_completed("menus")
+            completed_phases.append("menus")
 
-        # 6. Politiques du site
-        if "policies" in completed_phases:
-            print("[REPRISE] Phase 'policies' déjà complétée, sautée.")
-        else:
+        if not _skip("policies"):
             policy_entries = await clone_policies(client, remapper)
             report.extend(policy_entries)
             save_phase_completed("policies")
+            completed_phases.append("policies")
 
-        # 7. Réductions
-        if "discounts" in completed_phases:
-            print("[REPRISE] Phase 'discounts' déjà complétée, sautée.")
-        else:
+        if not _skip("discounts"):
             discount_entries = await clone_discounts(client, mapping, remapper)
             report.extend(discount_entries)
             mapping.save()
             save_phase_completed("discounts")
+            completed_phases.append("discounts")
 
-        # 8. Thème actif
-        if "theme" in completed_phases:
-            print("[REPRISE] Phase 'theme' déjà complétée, sautée.")
-        else:
+        if not _skip("theme"):
             theme_entries = await clone_theme(client, mapping, remapper)
             report.extend(theme_entries)
             mapping.save()
             save_phase_completed("theme")
+            completed_phases.append("theme")
 
         success = True
         print("Clone complete.")
     finally:
         save_report(report)
         await client.close()
-        if success:
+        if success and is_clone_complete(completed_phases):
             clear_state()
             cleanup_tmp_images()
 
 
 if __name__ == "__main__":
     load_env()
-    asyncio.run(run_clone())
+    selected = select_phases()
+    print(f"\n▶  Lancement du clonage — phases : {', '.join(selected)}\n")
+    asyncio.run(run_clone(selected))

@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Persistance de l'état d'avancement par phase
 Après chaque phase de clonage réussie, le système SHALL écrire dans `output/clone_state.json` la liste des phases complétées, la liste des phases sélectionnées pour ce run, la boutique source associée, et la date de début du clonage.
 
