@@ -116,8 +116,8 @@ Flux : téléchargement depuis le CDN Shopify source → **stockage local tempor
 - [X] Reprise sur erreur : relancer depuis le point d'échec sans tout recommencer
 - [X] Nettoyage automatique du stockage local temporaire après succès
 - [X] Clonage sélectif : choisir quelles ressources copier (ex : thème uniquement, produits uniquement)
-- [ ] Gestion des rate limits Shopify : file d'attente avec backoff automatique
-- [ ] Audit de santé : détection des objets orphelins dans la boutique source avant clonage
+- [X] Gestion des rate limits Shopify : file d'attente avec backoff automatique
+- [X] Audit de santé : détection des objets orphelins dans la boutique source avant clonage
 - [ ] Tous les thèmes installés (pas seulement le thème actif)
 - [ ] Paramètres du compte Shopify (devise, taxes, shipping zones dans la mesure de ce qu'expose l'API)
 

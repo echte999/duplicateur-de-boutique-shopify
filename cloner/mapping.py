@@ -3,7 +3,7 @@ from pathlib import Path
 
 _MAP_PATH = Path("output/id_map.json")
 
-_RESOURCE_TYPES = ["product", "variant", "collection", "page", "blog", "article", "menu"]
+_RESOURCE_TYPES = ["product", "variant", "collection", "page", "blog", "article", "menu", "theme"]
 
 
 class IDMapping:

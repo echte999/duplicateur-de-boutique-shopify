@@ -14,6 +14,7 @@ from cloner.phases.menus import clone_menus
 from cloner.phases.policies import clone_policies
 from cloner.phases.discounts import clone_discounts
 from cloner.phases.theme import clone_theme
+from cloner.health_audit import run_source_health_audit
 from cloner.report import save_report
 from cloner.state import load_state, save_phase_completed, clear_state, cleanup_tmp_images, is_clone_complete
 from cloner.phase_selector import select_phases
@@ -36,6 +37,29 @@ def _require(key: str) -> str:
     if not value:
         raise EnvironmentError(f"Missing required env var: {key}")
     return value
+
+
+def confirm_audit_continue(audit_result, input_fn=input) -> bool:
+    total_issues = audit_result.summary.get("total_issues", 0)
+    if total_issues == 0:
+        print("[AUDIT] Aucun objet orphelin detecte.")
+        return True
+
+    print(f"[AUDIT] {total_issues} anomalie(s) detectee(s) avant clonage.")
+    for detector, count in audit_result.summary.get("issues_by_detector", {}).items():
+        print(f"[AUDIT] - {detector}: {count}")
+
+    for issue in audit_result.issues[:10]:
+        print(
+            f"[AUDIT] {issue['code']} | {issue['resource_type']} {issue['resource_id']} | "
+            f"{issue['reference_path']} -> {issue['referenced_type']} {issue['referenced_id']}"
+        )
+
+    if total_issues > 10:
+        print(f"[AUDIT] ... {total_issues - 10} autre(s) anomalie(s) dans output/source_health_audit.json")
+
+    answer = input_fn("Continuer le clonage malgre ces anomalies ? [y/N] ").strip().lower()
+    return answer in {"y", "yes", "o", "oui"}
 
 
 async def run_clone(selected_phases: list[str]) -> None:
@@ -65,6 +89,7 @@ async def run_clone(selected_phases: list[str]) -> None:
 
     cache = ImageCache()
     report: list[dict] = []
+    clone_started = False
 
     completed_phases, effective_selected = load_state(source_shop, selected_phases)
 
@@ -79,6 +104,12 @@ async def run_clone(selected_phases: list[str]) -> None:
 
     success = False
     try:
+        audit_result = await run_source_health_audit(client, effective_selected)
+        if not confirm_audit_continue(audit_result):
+            print("[AUDIT] Clonage annule avant toute ecriture sur la cible.")
+            return
+
+        clone_started = True
         if not _skip("products"):
             product_entries = await clone_all_products(client, mapping, remapper)
             report.extend(product_entries)
@@ -137,7 +168,8 @@ async def run_clone(selected_phases: list[str]) -> None:
         success = True
         print("Clone complete.")
     finally:
-        save_report(report)
+        if clone_started:
+            save_report(report)
         await client.close()
         if success and is_clone_complete(completed_phases):
             clear_state()
