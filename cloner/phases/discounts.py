@@ -21,7 +21,11 @@ async def clone_discounts(
         title = rule.get("title", "")
 
         try:
-            payload = {k: v for k, v in rule.items() if k not in ("id", "admin_graphql_api_id", "created_at", "updated_at")}
+            # customer_segment_prerequisite_ids référence des segments clients non clonés
+            payload = {k: v for k, v in rule.items() if k not in (
+                "id", "admin_graphql_api_id", "created_at", "updated_at",
+                "usage_count", "customer_segment_prerequisite_ids",
+            )}
             # Remapper les IDs de produits/collections ciblés
             entitled_product_ids = rule.get("entitled_product_ids", [])
             if entitled_product_ids:

@@ -11,6 +11,14 @@ Le système SHALL permettre d'ajouter une entrée au rapport via `report.add_ent
 - **WHEN** une ressource échoue à être clonée
 - **THEN** `report.add_entry("product", 1234, None, "error")` enregistre l'échec avec `tgt_id` null
 
+#### Scenario: Ajout d'une entrée price_rule réussie
+- **WHEN** une price rule est clonée avec succès
+- **THEN** `report.add_entry("price_rule", source_id, target_id, "ok")` ajoute l'entrée sans erreur
+
+#### Scenario: Ajout d'une entrée price_rule en échec
+- **WHEN** une price rule échoue à être clonée
+- **THEN** `report.add_entry("price_rule", source_id, None, "error: <message>")` enregistre l'échec avec `tgt_id` null
+
 ### Requirement: Générer le fichier rapport JSON en fin de clonage
 Le système SHALL écrire `output/clone_report.json` via `report.generate()`, contenant la liste de toutes les entrées accumulées au format `{ "type", "id_source", "id_cible", "statut" }`.
 

@@ -105,7 +105,7 @@ Flux : téléchargement depuis le CDN Shopify source → **stockage local tempor
 - [X] Articles de blog + collections de blog
 - [X] Menus (navigation principale, footer, menus custom) avec remapping des cibles
 - [X] Politiques du site : remplacement du nom de boutique + domaine
-- [ ] Réductions : copie config + remise à zéro des compteurs d'utilisation
+- [X] Réductions : copie config + remise à zéro des compteurs d'utilisation
 
 ---
 
