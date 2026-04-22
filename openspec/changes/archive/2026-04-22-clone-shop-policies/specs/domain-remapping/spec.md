@@ -1,27 +1,5 @@
 ## ADDED Requirements
 
-### Requirement: Remplacement des domaines source dans les contenus textuels
-Le système SHALL remplacer toutes les occurrences du domaine `.myshopify.com` source ET du domaine custom source par le domaine cible dans tout contenu textuel (HTML ou JSON) avant écriture sur la boutique cible.
-
-#### Scenario: Remplacement dans une description HTML
-- **WHEN** `body_html` contient `https://source.myshopify.com/products/t-shirt`
-- **THEN** la valeur écrite contient `https://target.myshopify.com/products/t-shirt`
-
-#### Scenario: Remplacement du domaine custom source
-- **WHEN** le contenu contient `https://www.ancienne-boutique.fr/pages/contact`
-- **THEN** la valeur écrite contient `https://www.nouvelle-boutique.fr/pages/contact`
-
-#### Scenario: URLs externes non modifiées
-- **WHEN** le contenu contient `https://www.google.com/maps`
-- **THEN** l'URL est copiée telle quelle sans modification
-
-### Requirement: Remplacement dans les attributs href et src
-Le système SHALL détecter et remplacer les domaines dans les attributs `href="..."` et `src="..."` des balises HTML, y compris quand le domaine apparaît dans une URL encodée.
-
-#### Scenario: Attribut href avec domaine source
-- **WHEN** HTML contient `<a href="https://source.myshopify.com/collections/all">`
-- **THEN** HTML résultant contient `<a href="https://target.myshopify.com/collections/all">`
-
 ### Requirement: Remplacement du nom de la boutique source dans les contenus textuels
 Le système SHALL remplacer les occurrences exactes du nom de la boutique source (tel que retourné par `GET /shop.json` champ `name`) par le nom de la boutique cible dans tout contenu textuel passé à `domain.remap()`.
 
@@ -37,6 +15,8 @@ Le système SHALL remplacer les occurrences exactes du nom de la boutique source
 - **WHEN** `remap()` est appelé sans nom de boutique source
 - **THEN** seuls les domaines sont remplacés, sans erreur
 
+## MODIFIED Requirements
+
 ### Requirement: Initialisation avec les deux domaines source
 Le système SHALL être initialisé avec : le domaine `.myshopify.com` source, le domaine custom source (optionnel), le domaine cible de remplacement, le nom de la boutique source (optionnel), et le nom de la boutique cible (optionnel).
 
@@ -47,21 +27,6 @@ Le système SHALL être initialisé avec : le domaine `.myshopify.com` source, l
 #### Scenario: Remapping sans nom de boutique
 - **WHEN** aucun nom de boutique source n'est fourni
 - **THEN** le remapping se limite aux domaines, sans erreur
-
-### Requirement: Exposer une fonction remap() générique
-Le système SHALL exposer une fonction `remap(text: str, source_domains: list[str], target_domain: str) -> str` dans `cloner/domain.py`, utilisable sur n'importe quelle chaîne sans connaissance du format.
-
-#### Scenario: Appel avec une chaîne vide
-- **WHEN** la fonction est appelée avec une chaîne vide
-- **THEN** elle retourne une chaîne vide sans erreur
-
-#### Scenario: Appel avec None ou valeur non-string
-- **WHEN** la fonction est appelée avec `None` ou un type non-string
-- **THEN** elle retourne la valeur telle quelle sans lever d'exception
-
-#### Scenario: Remplacement dans un JSON de thème sérialisé
-- **WHEN** une valeur JSON contient `"url": "https://source.myshopify.com/collections/all"`
-- **THEN** la fonction retourne la valeur avec l'URL remplacée par le domaine cible
 
 ### Requirement: Intégration du remapping dans toutes les phases de clonage
 Le système SHALL appliquer `domain.remap()` sur toutes les valeurs textuelles avant écriture sur la boutique cible dans chacune des phases : `products.py`, `collections.py`, `pages.py`, `blogs.py`, `menus.py`, `policies.py`, `discounts.py`, et `theme.py`.

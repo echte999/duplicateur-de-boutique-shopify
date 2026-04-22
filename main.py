@@ -11,6 +11,7 @@ from cloner.phases.collections import clone_collections
 from cloner.phases.pages import clone_pages
 from cloner.phases.blogs import clone_blogs
 from cloner.phases.menus import clone_menus
+from cloner.phases.policies import clone_policies
 from cloner.phases.discounts import clone_discounts
 from cloner.phases.theme import clone_theme
 from cloner.report import save_report
@@ -46,10 +47,18 @@ async def run_clone() -> None:
     mapping = IDMapping()
 
     source_shop = _require("SOURCE_SHOP")
+
+    src_shop_data = await client.get_source("shop.json")
+    dst_shop_data = await client.get_target("shop.json")
+    source_shop_name = src_shop_data.get("shop", {}).get("name")
+    target_shop_name = dst_shop_data.get("shop", {}).get("name")
+
     remapper = DomainRemapper(
         source_myshopify=source_shop,
         target_domain=os.environ.get("TARGET_CUSTOM_DOMAIN") or _require("TARGET_SHOP"),
         source_custom=os.environ.get("SOURCE_CUSTOM_DOMAIN") or None,
+        source_shop_name=source_shop_name,
+        target_shop_name=target_shop_name,
     )
 
     cache = ImageCache()
@@ -81,12 +90,16 @@ async def run_clone() -> None:
         report.extend(menu_entries)
         mapping.save()
 
-        # 6. Politiques + réductions
+        # 6. Politiques du site
+        policy_entries = await clone_policies(client, remapper)
+        report.extend(policy_entries)
+
+        # 7. Réductions
         discount_entries = await clone_discounts(client, mapping, remapper)
         report.extend(discount_entries)
         mapping.save()
 
-        # 7. Thème actif
+        # 8. Thème actif
         theme_entries = await clone_theme(client, mapping, remapper)
         report.extend(theme_entries)
         mapping.save()

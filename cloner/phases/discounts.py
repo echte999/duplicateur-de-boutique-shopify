@@ -2,53 +2,6 @@ from cloner.client import ShopifyClient
 from cloner.domain import DomainRemapper
 from cloner.mapping import IDMapping
 
-_POLICY_HANDLES = [
-    "refund-policy",
-    "privacy-policy",
-    "terms-of-service",
-    "shipping-policy",
-    "contact-information",
-    "subscription-policy",
-    "legal-notice",
-]
-
-
-async def clone_policies(
-    client: ShopifyClient,
-    remapper: DomainRemapper,
-) -> list[dict]:
-    report_entries: list[dict] = []
-
-    print("Fetching policies from source...")
-    result = await client.get_source("policies.json")
-    policies = result.get("policies", [])
-    print(f"Found {len(policies)} policies.")
-
-    for policy in policies:
-        handle = policy.get("handle", "")
-        title = policy.get("title", "")
-        body = remapper.remap(policy.get("body", "")) or ""
-
-        try:
-            await client.post_target("policies.json", {"policy": {
-                "handle": handle,
-                "title": title,
-                "body": body,
-            }})
-            print(f"  Cloned policy '{title}'")
-            report_entries.append({
-                "type": "policy", "id_source": handle, "id_cible": handle,
-                "title": title, "statut": "ok",
-            })
-        except Exception as e:
-            print(f"  [ERROR] Policy '{title}': {e}")
-            report_entries.append({
-                "type": "policy", "id_source": handle, "id_cible": None,
-                "title": title, "statut": f"error: {e}",
-            })
-
-    return report_entries
-
 
 async def clone_discounts(
     client: ShopifyClient,
@@ -56,10 +9,6 @@ async def clone_discounts(
     remapper: DomainRemapper,
 ) -> list[dict]:
     report_entries: list[dict] = []
-
-    # Politiques du site
-    policy_entries = await clone_policies(client, remapper)
-    report_entries.extend(policy_entries)
 
     # Réductions (price rules + discount codes)
     print("Fetching price rules from source...")

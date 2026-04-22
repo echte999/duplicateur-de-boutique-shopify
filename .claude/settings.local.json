@@ -15,7 +15,30 @@
       "mcp__shopify-source__get-products",
       "mcp__shopify-source__get-product-by-id",
       "Bash(python -c ' *)",
-      "Bash(python repair_products.py)"
+      "Bash(python repair_products.py)",
+      "Read(//c/c/Users/PC/Desktop/Trucs/Projets Claude Code/Copieur de boutique Shopify/cloner/**)",
+      "Read(//c/c/Users/PC/Desktop/Trucs/Projets Claude Code/Copieur de boutique Shopify/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('products:', len\\(d.get\\('product',{}\\)\\)\\); print\\('variants:', len\\(d.get\\('variant',{}\\)\\)\\); print\\('collections:', len\\(d.get\\('collection',{}\\)\\)\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python tmp_fix_images2.py)",
+      "Bash(python -c \"from cloner.phases.theme import clone_theme, _is_group_file, migrate_shop_images, process_asset_content; print\\('Import OK'\\); print\\('header-group.json:', _is_group_file\\('sections/header-group.json'\\)\\); print\\('header.group.json:', _is_group_file\\('sections/header.group.json'\\)\\); print\\('settings_data.json:', _is_group_file\\('config/settings_data.json'\\)\\)\")",
+      "Bash(python -c \"import ast, sys; files = ['main.py', 'cloner/mapping.py', 'cloner/domain.py', 'cloner/report.py', 'cloner/phases/pages.py', 'cloner/phases/blogs.py', 'cloner/phases/menus.py', 'cloner/phases/discounts.py', 'cloner/phases/products.py']; [ast.parse\\(open\\(f\\).read\\(\\)\\) or print\\(f'OK: {f}'\\) for f in files]\")",
+      "Bash(python -c \"import ast, sys; files=['cloner/phases/products.py','cloner/phases/collections.py','cloner/phases/pages.py']; [print\\(f'{f}: OK'\\) or ast.parse\\(open\\(f\\).read\\(\\)\\) for f in files]\")",
+      "Bash(python -c \"from cloner.phases.products import clone_all_products, _write_metafields, _fetch_product_extra; from cloner.phases.collections import clone_collections, _fetch_collection_metafields, _write_collection_metafields; from cloner.phases.pages import clone_pages, _fetch_page_metafields, _write_page_metafields; print\\('All imports OK'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['progress']\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus, _fetch_all_menus, _remap_menu_item; print\\('Import OK'\\)\")",
+      "Bash(python -c \"import test_menus; print\\('Syntaxe OK'\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus, _fetch_all_menus, _remap_item; print\\('OK'\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus; print\\('OK'\\)\")",
+      "Bash(python -c \"import test_menus; print\\('OK'\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus, _build_policy_map; import test_menus; print\\('OK'\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus, _build_policy_map; print\\('OK'\\)\")",
+      "Bash(python -c \"from cloner.phases.menus import clone_menus, _remap_item; print\\('OK'\\)\")",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs"
     ]
   }
 }
